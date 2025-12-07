@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Chat Web Demo</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 50;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    #layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      width: 90%;
+      max-width: 1200px;
+      height: 80vh;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(18px);
+      border-radius: 18px;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .answer {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .answer:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    #chatBox {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 10px;
+    }
+
+    .bubble {
+      max-width: 70%;
+      padding: 12px;
+      border-radius: 14px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .agent {
+      background: rgba(255, 255, 255, 0.1);
+      align-self: flex-start;
+    }
+
+    .user {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      align-self: flex-end;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .typing {
+      width: 40px;
+      height: 16px;
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+      animation: blink 1.4s infinite;
+    }
+
+    .system {
+      align-content: center;
+      background: none;
+      border-radius: 0;
+      padding: 6px 0;
+      font-style: italic;
+      opacity: 0.8;
+    }
+
+
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes blink {
+      0% { opacity: 0.2; }
+      50% { opacity: 1; }
+      100% { opacity: 0.2; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="splash">
+  <h1 style="font-size: 36px; font-weight: bold;">Welcome to the Interactive Ticket Guide</h1>
+  <button style="padding: 12px 22px; border-radius: 15px; background: #4b5aff88; border: none; color: white; cursor: pointer; font-size: 20px;" onclick="startApp()">Enter</button>
+</div>
+
+<div id="layout" style="display: none;">
+  <div class="panel" id="questionPanel"></div>
+
+  <div class="panel" id="chatBox">
+    <div id="messages"></div>
+  </div>
+</div>
+
+<script>
+  const script = {
+    start: {
+      question: "What is this ticket about?",
+      answers: [
+        {
+          label: "User was scammed",
+          chats: [
+            { from: "Agent", text: "Hello! I was scammed. by somebody and I need to get my pets back please" },
+            { from: "User", text: "Hello, Thank you for reaching out, I'd be happy to help. First, could I please know whether you met this user first in-game or on discord?" }
+          ],
+          next: "Scammed"
+        },
+        {
+          label: "User is reporting a hacked link",
+          chats: [
+            { from: "Agent", text: "No worries — what seems to be the issue?" }
+          ],
+          next: "next2"
+        }
+      ]
+    },
+
+    Scammed: {
+      question: "Where was the scam initiated?",
+      answers: [
+        {
+          label: "In-game",
+          chats: [{ from: "Agent", text: "It started in-game they took my pets can you please give them back" },
+            { from: "User", text: "I'm sorry to hear that. Unfortunately as discord volunteers, we are unable to assist with in-game issues. Please report the trade(s) in your trading license and follow the information found here: https://upliftgames.zendesk.com/hc/en-us/articles/39529601838740-Dealing-with-a-Scammed-Account" }
+          ],
+          next: "End"
+        },
+        {
+          label: "On Discord",
+          chats: [{ from: "Agent", text: "It started on discord they messaged me saying..." }],
+          next: "scamtype"
+        }
+      ]
+    },
+
+    scamtype: {
+      question: "How was the user scammed? (ask if they have not clarified)",
+      answers: [
+        {
+          label: "Cross trade, robux trade, etc.",
+          chats: [{ from: "Agent", text: "That they would give me a mega wolpertinger if I bought their roblox gamepass" },
+            { from: "User", text: "I'm sorry to hear that. Could you please provide their user ID and uncropped, unedited screenshots as evidence so we can look further into this?" },
+            { from: "Agent", text: "ok" },
+            {from: "System", text: "[valid and comprehensive screenshot + User ID]"},
+            {from: "System", text: "Analyse the provided information, ask for further information if required, then Moderate the user accordingly"},
+            { from: "User", text: "Thank you for this, please be assured that any appropriate actions have been taken. As we are just discord volunteers, we are unable to help with in-game issues, though we can recommend reporting the trade in your trading license and viewing this relevant support article: https://upliftgames.zendesk.com/hc/en-us/articles/39529601838740-Dealing-with-a-Scammed-Account" },
+            { from: "System", text: "/closerequest" },
+          ],
+          next: "End"
+        },
+        {
+          label: "Friend scam",
+          chats: [{ from: "Agent", text: "They told me they would give me a neon glyptodon if I joined and traded with my friend, but then my pets disappeared" },
+            { from: "User", text: "I'm sorry to hear that. Could you please provide their user ID and uncropped, unedited screenshots as evidence so we can look further into this?" },
+            { from: "Agent", text: "sure! [valid and comprehensive screenshot + User ID]" },
+            { from: "User", text: "[Ban/Mute user] - Thank you for this, all appropriate actions have been taken. As we are just discord volunteers, we are unable to help with in-game issues, though we can recommend reporting the trade in your trading license and viewing this relevant support article: https://upliftgames.zendesk.com/hc/en-us/articles/39529601838740-Dealing-with-a-Scammed-Account" },
+            { from: "User", text: "/closerequest" },
+          ],
+          next: "End"
+        },
+        {
+          label: "Link scam",
+          chats: [{ from: "Agent", text: "They sent me a link to join them and then when I came on this morning my pets were gone and there were trades I didn't do" },
+            { from: "User", text: "I'm sorry to hear that. Could you please provide their user ID and uncropped, unedited screenshots as evidence so we can look further into this?" },
+            { from: "Agent", text: "ok but please help [valid and comprehensive screenshot + User ID]" },
+            { from: "User", text: "[Ban/Mute user] - Thank you for this, all appropriate actions have been taken. As we are just discord volunteers, we are unable to help with in-game issues, though we can recommend reporting the trade in your trading license and viewing this relevant support article: https://upliftgames.zendesk.com/hc/en-us/articles/39518247854356-Dealing-with-a-Hacked-Account" },
+            { from: "User", text: "/closerequest" },
+          ],
+          next: "End"
+        },      
+      ]
+    },
+
+
+
+    next2: {
+      question: "Where is the problem?",
+      answers: [
+        {
+          label: "Login",
+          chats: [{ from: "Agent", text: "Try resetting your password — that usually fixes it." }]
+        },
+        {
+          label: "Sync",
+          chats: [{ from: "Agent", text: "Sync issues often come from outdated apps." }]
+        }
+      ]
+    },
+
+
+
+
+
+
+
+
+
+
+
+
+    End: {
+      question: "Finished",
+      answers: [
+        {
+          label: "Reset",
+                    chats: [{ from: "User", text: "Resetting..." }],
+          next: "start"
+        }
+      ]
+    },
+  };
+
+
+
+
+  
+  let current = "start";
+  let typingTimeout;
+
+  function startApp() {
+    document.getElementById("splash").style.display = "none";
+    document.getElementById("layout").style.display = "grid";
+    loadQuestion();
+  }
+
+  function loadQuestion() {
+
+if (current === "start") {
+  const msgBox = document.getElementById("messages");
+  msgBox.innerHTML = "";
+}
+
+    const q = script[current];
+    const panel = document.getElementById("questionPanel");
+    panel.style.display = "block";
+    panel.innerHTML = `<h2>${q.question}</h2>`;
+
+    q.answers.forEach((ans) => {
+      const btn = document.createElement("div");
+      btn.className = "answer";
+      btn.innerText = ans.label;
+      btn.onclick = () => selectAnswer(ans);
+      panel.appendChild(btn);
+    });
+  }
+
+
+  function selectAnswer(ans) {
+    const panel = document.getElementById("questionPanel");
+    panel.innerHTML = "";
+
+    showChats(ans.chats, () => {
+      if (ans.next) {
+        current = ans.next;
+        loadQuestion();
+      }
+    });
+  }
+
+function addMessage(from, text) {
+  const box = document.getElementById("messages");
+  const div = document.createElement("div");
+
+  if (from === "User") {
+    div.className = "bubble user";
+  } else if (from === "Agent") {
+    div.className = "bubble agent";
+  } else if (from === "System") {
+    div.className = "system";
+  }
+
+  div.innerText = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+
+  function showTyping(callback) {
+    const box = document.getElementById("messages");
+    const wrap = document.createElement("div");
+    wrap.className = "bubble agent";
+
+    wrap.innerHTML = `<div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+
+    return wrap;
+  }
+
+  function showChats(chats, done) {
+    let i = 0;
+
+    function next() {
+      if (i >= chats.length) return done();
+
+      const typing = showTyping();
+
+      setTimeout(() => {
+        typing.remove();
+        addMessage(chats[i].from, chats[i].text);
+        i++;
+        setTimeout(next, 400);
+      }, 900);
+    }
+
+    next();
+  }
+</script>
+
+</body>
+</html>
